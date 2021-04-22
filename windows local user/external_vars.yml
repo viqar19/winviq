@@ -1,0 +1,10 @@
+---
+
+var_gituserid: "{{ var_survey_gituserid }}"
+var_gittoken: "{{ var_survey_gittoken }}"
+var_gituseremail: "{{ var_survey_gitusermail }}"
+var_inputcsvfile: "{{ var_surveycsvfile }}"
+var_run_sockrole: true
+var_repo: " {{var_surveyreponame}} "
+var_accid: "{{ var_surveyaccid }}"
+var_reportdirname: " {{ var_surveyreportdirname }} "

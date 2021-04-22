@@ -1,0 +1,25 @@
+---
+  - name: replace trailing space
+    replace:
+          path: "{{ csv_file_name }}"
+          regexp: ' ,'
+          replace: ','
+  - name: Read users from CSV file and return a list
+    read_csv:
+            path: "{{ csv_file_name }}"
+            fieldnames: "{{ csv_fields }}"
+            delimiter: ','
+            skipinitialspace: yes
+    register: usersvar
+
+  - name: Removing first element
+    set_fact:
+            csvresults: "{{ csvresults | default([]) | union([item]) }}"
+    loop: "{{ usersvar.list }}"
+    loop_control:
+         index_var: index
+    when:
+       - index > 0
+
+  - debug:
+      msg: "AFTER removing first element ---------------- {{ csvresults }}"

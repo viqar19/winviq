@@ -1,0 +1,92 @@
+---
+- name: user management play1 on localhost
+  import_playbook: initial.yml
+  vars:
+    var_directory: "{{ role_path }}/files/{{ var_reportdirname }}"
+    #var_inputcsvfile: "{{ var_inputcsvfile1 }}"
+    csv_fields: "Number,Userid,Fullname,Description,Password,Groups,Changepasswordatlogin,hostname,Action,PasswordNeverExpires,UserCannotChangePassword,AccountDisabled"
+    var_reponame: "{{ var_repo }}"
+    var_actionfrommainfile: "windows"      
+- name:  Play for Socks tunnel setup
+  hosts: all
+  gather_facts: false
+  vars_files:
+       - external_vars.yml  
+  roles:
+     - role: event-socks-tunnel
+       run_once: true
+       delegate_to: localhost
+       vars:
+          - acc_id: "{{ var_accid }}"
+          - transaction_id: "{{ tower_job_id }}"
+       when:
+            - var_run_sockrole
+
+- name: user management play2 on hosts read from CSV file
+  hosts: "{{ hostvars['localhost']['valid_hostnames_p1'] }}"
+
+  vars:
+    var_output_txt: ""
+    var_csv_fields: "Number,Userid,Fullname,Description,Password,Groups,Changepasswordatlogin,hostname,Action,PasswordNeverExpires,UserCannotChangePassword,AccountDisabled"
+
+  tasks:
+   - name: Get csvresults from previous play
+     set_fact:
+        csvresults_full: "{{ hostvars['localhost']['csvresults'] }}"
+   - name: Filter csvresults with action and hostname
+     set_fact:
+        csvresults: "{{ csvresults_full|selectattr('Action','match','(?i)^[#]*windows')|selectattr('hostname','equalto',inventory_hostname)|list }}"
+   - debug:
+       msg: "csv list in second play after filtering based hostname and Action-------------- {{ csvresults }}"
+
+   - name: Call local user addition or modification
+     include_role:
+            name: win_user_modifications
+            tasks_from: create_local_user.yml
+     vars:
+       list_item: "{{ item }}"
+     with_items: "{{ csvresults|selectattr('Action','match','(?i)^[# \t]*windowslocalusercreate')|list }}"
+       
+   - name: Call local user modification
+     include_role:
+            name: win_user_modifications
+            tasks_from: modify_local_user.yml
+     vars:
+       list_item: "{{ item }}"
+     with_items: "{{ csvresults|selectattr('Action','match','(?i)^[# \t]*windowslocalusermodify')|list }}"
+        
+   - name: Call local group removal
+     include_role:
+            name: win_user_modifications
+            tasks_from: group_remove_local.yml
+     vars:
+       list_item: "{{ item }}"
+     with_items: "{{ csvresults|selectattr('Action','match','(?i)^[# \t]*windowslocalgroupremove')|list }}"
+   
+   - name: Call local group addition
+     include_role:
+            name: win_user_modifications
+            tasks_from: group_add_local.yml
+     vars:
+       list_item: "{{ item }}"
+     with_items: "{{ csvresults|selectattr('Action','match','(?i)^[# \t]*windowslocalgroupadd')|list }}"
+     
+   - name: Call local user deletion
+     include_role:
+          name: win_user_modifications
+          tasks_from: delete_local_user.yml 
+     vars:
+       list_item: "{{ item }}"
+     with_items: "{{ csvresults|selectattr('Action','match','(?i)^[# \t]*windowslocaluserdelete')|list }}"
+   - debug:
+        msg: 
+           - "{{ ansible_os_family }}"
+           - "==================For Hostname {{ inventory_hostname }}=========\n {{ var_output_txt }}"       
+- name: play4 on localhost
+  import_playbook: output_checkin.yml
+  vars:
+       var_request_filepath: "{{ role_path }}/files/{{ var_reportdirname }}"
+       var_request_file_name: "{{ var_inputcsvfile }}"
+       var_reponame: " {{ var_repo }}"
+       var_csv_fields: "Number,Userid,Fullname,Description,Password,Groups,Changepasswordatlogin,hostname,Action,PasswordNeverExpires,UserCannotChangePassword,AccountDisabled"
+

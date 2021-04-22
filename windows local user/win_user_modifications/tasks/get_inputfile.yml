@@ -1,0 +1,54 @@
+---
+ - name: check file stats
+   stat:
+        path: "{{ var_dirtocheckout }}"
+   register: st
+ - debug:
+         msg: "Directory exists:{{ st.stat|default('') }}===== {{ st.stat.exists|default('') }}===search path: {{ st.stat.path|default('') }}:{{ st.stat.path|default('') is match('.*/{{ var_reportdirname }}') }}" 
+ - name:  Remove directory if it exists
+   file:
+       path: "{{ st.stat.path }}"
+       state: absent
+   register: dirout
+   when: 
+       - st.stat is defined and st.stat.exists and st.stat.path is match('.*/{{ var_reportdirname }}')
+ - debug:
+         msg: " Directory removed-- {{ dirout|default('not removed') }}"         
+
+ - name:  Get files from git
+   shell: git clone  --no-checkout https://{{ var_gituserid }}:{{ var_gittoken }}@{{ var_reponame }} '{{ var_dirtocheckout }}'
+   register: gitcloneoutput
+   ignore_errors: true
+ - debug:
+      msg: "Git access ---------------- {{ gitcloneoutput }}"
+ - name: Check the repository
+   git:
+        repo: "{{ var_gituserid }}:{{ var_gittoken }}@{{ var_reponame }}"
+        dest: "{{ var_dirtocheckout }}"
+        clone: no
+        update: no
+   register: gitrepooutput
+ - debug:
+         msg: " git  Report output {{ gitrepooutput|default('') }}" 
+
+ - name: Git Init
+   shell: "git init" 
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output1
+ - debug:
+         msg: "Output of shell commands ------{{ shell_output1 }}"
+ - name: Git Fetch
+   shell: "git fetch" 
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output2
+ - debug:
+         msg: "Output of shell commands ------{{ shell_output2 }}"
+ - name: Git Checkout file
+   shell: "git checkout master -- {{ var_inputcsvfile }}"
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output3
+ - debug:
+         msg: "Output of shell commands ------{{ shell_output3 }}"

@@ -1,0 +1,54 @@
+---   
+  - name: Check if id already exists
+    win_shell: |
+         $outstring=Get-LocalUser -Name '{{ list_item.Userid }}' -erroraction 'silentlycontinue'|Measure-Object -Line |ft -h|out-String
+         Write $outstring.trim() 
+    register: shelloutput
+    ignore_errors: true
+  - debug:
+       msg: "Fetch details command {{ shelloutput }} "
+  - debug:
+       msg: "Shelloutput stdout {{ shelloutput.stdout_lines[0] }}"
+  - set_fact:
+        var_useridexists: "{{ (shelloutput.stdout_lines[0] == '1')|ternary(true,false) }}"
+ 
+  - debug:
+       msg: "user id exists: {{ var_useridexists }}"
+    when:
+       - shelloutput.stdout is defined and shelloutput.stdout !=""
+
+  - name: Delete a  user
+    win_user:
+      name: "{{ list_item.Userid  }}"
+      state: absent
+    ignore_errors: true
+    register: userresult
+    when:
+      - var_useridexists
+
+  - set_fact:
+       var_output_txt: "{{ var_output_txt+ list_item[keysitem]+', ' }}"
+    loop: "{{ var_csv_fields.split(',') }}"   
+    loop_control:
+       loop_var: keysitem
+  - debug:
+      msg: " new output:{{ var_output_txt }}"      
+
+  - set_fact:
+       var_output_txt: "{{ var_output_txt+ 'Userid removed successfully.Msg:' +userresult.msg|default('')+ '\n' }}"
+    when:
+       - var_useridexists and  userresult.changed
+
+  - set_fact:
+       var_output_txt: "{{ var_output_txt+ 'Userd:'+list_item.Userid+' does not exist' +'\n' }}"
+    when:
+       - not var_useridexists
+
+  - set_fact:
+         var_output_txt: "{{ var_output_txt +', '+ 'Userid removed but errors -- ' +  userresult.stderr  + '\n' }}"
+    when:
+         - var_useridexists and userresult.stderr is defined and userresult.stderr|length > 0  and userresult.changed == true
+  - set_fact:
+       var_output_txt: "{{ var_output_txt +', '+ 'Userid not removed. Error:' + userresult.msg|default('') +'\n' }}"
+    when:
+       - var_useridexists  and not userresult.changed

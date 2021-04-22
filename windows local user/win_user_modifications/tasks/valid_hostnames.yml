@@ -1,0 +1,23 @@
+---
+  - debug:
+      msg: "action received from main file -----   {{ var_actionfrommainfile }} "
+
+  - set_fact:
+       var_conditionalmatch: "(?i)^[# \t]*{{ var_actionfrommainfile }}"
+
+  - debug:
+      msg: "conditional expression -----   {{ var_conditionalmatch }} "
+
+  - set_fact:
+          valid_hostnames_p1: "{{ valid_hostnames_p1 +''+((my_idx > 0)|ternary(':',''))+ item }}"
+    loop: "{{ csvresults|selectattr('Action','match',var_conditionalmatch)|map(attribute='hostname')|unique|list}}"
+    loop_control:
+        index_var: my_idx
+    when:
+       - item !=" "
+       - item !=""
+       - hostvars[item] is defined
+  - name: Fail when no tasks or no valid hostnames
+    fail:
+            msg: " No tasks in csv file or non valid hostnames"
+    when: valid_hostnames_p1|length == 0

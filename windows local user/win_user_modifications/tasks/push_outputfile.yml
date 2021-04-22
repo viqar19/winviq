@@ -1,0 +1,32 @@
+---
+ - name: Config Repository with userid and mail
+   shell: "git config user.name '{{ var_gituserid }}';git config  user.email '{{ var_gituseremail }}'"
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output1
+ - debug:
+         msg: "Output of shell commands1 ------{{ shell_output1 }}"
+
+ - name: Add output directory
+   shell: "git add {{ var_dirname }}"
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output2
+ - debug:
+         msg: "Output of shell commands2 ------{{ shell_output2 }}"
+ - name: Git Commit
+   shell: "git commit -m 'TowerJob_{{ tower_job_id|default('No id') }}' {{ var_dirname }}"
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output
+ - debug:
+         msg: "Output of shell commands3 ------{{ shell_output3}}"
+
+ - name: Git Push
+   shell: "git push"
+   args:
+       chdir: "{{ role_path }}/files/{{ var_reportdirname }}"
+   register: shell_output4
+ - debug:
+         msg: "Output of shell commands4 ------{{ shell_output4}}"
+

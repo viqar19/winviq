@@ -1,0 +1,36 @@
+---
+- name: play3 on localhost
+  hosts: localhost
+  connection: local
+
+  vars:
+         var_current_timestamp: "{{ ansible_date_time.iso8601_basic_short }}" 
+         var_local_output: ""
+         var_dirname: "{{ role_path }}/files/{{ var_reportdirname }}/output/output_{{ var_current_timestamp }}"
+         var_output_filename: "{{ var_dirname }}/output_{{ var_current_timestamp }}.csv"
+         var_dirtocheckout: "{{ role_path }}/files/{{ var_reportdirname }}"
+  vars_files:
+       - external_vars.yml
+
+  tasks:  
+   - name: Set value from the previous hosts
+     set_fact:
+          var_local_output: "{{ var_local_output + hostvars[item]['var_output_txt']|default('no output') }}"
+     with_items: "{{ valid_hostnames_p1.split(':') }}"
+   - name: Call output creation
+     include_role:
+        name: win_user_modifications
+        tasks_from: create_outputfile.yml
+   - name: Call output folder push
+     include_role:
+         name: win_user_modifications
+         tasks_from: push_outputfile.yml     
+   - debug:
+           msg:
+             - "=================Output ====================================="
+             - "=User who started it: {{ tower_user_name|default('no user') }}"
+             - "=========For Hostname {{ inventory_hostname }}=========\n"
+             - "{{ (csvresults|list|first).keys()|join(',') }}"               
+             - "{{ var_local_output.split('\n') }}"
+             - "=============================================================="     
+

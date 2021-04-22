@@ -1,0 +1,48 @@
+---
+
+ - git:
+        repo: "{{ var_gituserid }}:{{ var_gittoken }}@{{ var_reponame }}"
+        dest: "{{ var_dirtocheckout }}"
+        clone: no
+        update: no
+   register: gitrepooutput
+ - debug:
+         msg: " git  Report output in createoutputfolder {{ gitrepooutput|default('') }}"
+ - name: Creates output directory
+   file:
+     path: "{{ var_dirtocheckout }}/output"
+     state: directory
+     mode: 0775
+   register: diroutput
+ - debug:
+      msg: "Dir status:{{ diroutput }}"   
+
+ - name: Creates directory
+   file:
+     path: "{{ var_dirname }}"
+     state: directory
+     mode: 0775
+   register: dirout
+ - debug:
+         msg: "Dir status:{{ dirout }}"  
+ 
+ - name: check file stats
+   stat:
+        path: "{{ var_dirname }}"
+   register: st
+ - debug:
+         msg: "Status:{{ st }}"
+         # - name: Create file for output
+         #   copy:
+         # content: |
+         #          {{ var_global_output.split('\n') }}
+         #          ==============================================================
+         #  dest: "{{ var_output_filename }}"         
+ - name: Create file for output
+   template:
+           src: "output.csv.j2"
+           dest: "{{ var_output_filename }}"
+ - name: Copy original requests file for records
+   copy: 
+        src: "{{ var_request_filepath }}/{{ var_request_file_name }}"  
+        dest: "{{ var_dirname }}/{{ var_request_file_name }}"

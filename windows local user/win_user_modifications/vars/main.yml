@@ -1,0 +1,6 @@
+---
+# vars file for test_role
+var_output_txt: ""
+controller_node: "{{ lookup('pipe','hostname') }}"
+timestamp: "{{ lookup('pipe', 'date +%Y%m%d%H%M%SZ') }}"
+usersvar: ""

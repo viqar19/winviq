@@ -1,0 +1,48 @@
+---
+- name: user management play1 on localhost
+  hosts: localhost
+  connection: local
+
+  vars:
+    valid_hostnames_p1: ""
+  vars_files:
+       - external_vars.yml  
+
+  tasks:
+  - name: Get Input file
+    include_role:
+      name: win_user_modifications
+      tasks_from: get_inputfile.yml
+    vars:    
+          var_dirtocheckout: "{{ var_directory }}"
+  - name: read CSV file
+    include_role:
+     name: win_user_modifications
+     tasks_from: read_csv.yml
+    vars:
+      csv_file_name: "{{ var_directory }}/{{ var_inputcsvfile }}"
+
+  - debug:
+       msg: "data from csv file in role file = {{ csvresults }} "
+
+  - name: create hostname variable
+    include_role:
+      name: win_user_modifications
+      tasks_from: valid_hostnames.yml
+
+  - debug:
+      msg: "valid hostnames = {{ valid_hostnames_p1 }}"
+  - name: Fail when no tasks or no valid hostnames
+    fail:
+       msg: " No  {{ var_actionfrommainfile }} tasks or no valid hostnames"
+    when: valid_hostnames_p1|length == 0
+
+  #- name: Run windows socket role
+  #  include_role: 
+  #       name: event-socks-tunnel
+  #  run_once: true
+  #  vars:
+  #    - acc_id: "{{ apmvar_accid }}"
+  #    - transaction_id: "{{ tower_job_id }}"
+  #  when:
+  #    - var_run_sockrole
